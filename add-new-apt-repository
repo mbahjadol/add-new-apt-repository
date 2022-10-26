@@ -1,0 +1,148 @@
+#!/bin/sh
+# MIT License
+
+# Copyright (c) 2022 mbahjadol , github.com/mbahjadol
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+
+print_help()
+{
+    echo "Name: add-new-apt-repository shell script"
+    echo "Author: Joko 'mbahjadol' Riyadi,  github.com/mbahjadol"
+    echo "Description:"
+    echo "This script is to to make it easier to add the ubuntu repository which since the last ubuntu update version made the apt-key command deprecated, and this script helps to add a new repository according to the new procedures implemented by ubuntu with gpg-keyring easily."
+    echo "Parameter:"
+    echo "1) first parameter is url of file is an armored ASCII file used by Pretty Good Privacy (PGP)"
+    echo "2) second parameter is url of file description of debian list repository info"
+    echo "All parameter you can add with 'https://' or no"
+    echo 
+    echo "Example: "
+    echo "  ./add-new-apt-repository packages.microsoft.com/keys/microsoft.asc packages.microsoft.com/config/ubuntu/20.04/mssql-server-2019.list"
+    echo "  ./add-new-apt-repository https://packages.microsoft.com/keys/microsoft.asc https://packages.microsoft.com/config/ubuntu/20.04/mssql-server-2019.list"
+    echo
+}
+
+check_have_https()
+{
+    local url=$1;shift;
+    local len_split=`echo $url | awk '{split($0,a,"//"); print length(a);}'`
+    if [ $len_split -eq 2 ]; then
+        return 1
+    else
+        return 0
+    fi    
+}
+
+remove_https()
+{
+    local url=$1;shift;
+    local res=`echo $url | awk '{split($0,a,"//"); print a[2];}'`
+    echo "$res"
+}
+
+get_last()
+{
+    local url=$1;shift;
+    local res=`echo $url | awk '{split($0,a,"/"); print a[length(a)]}'`
+    echo $res
+}
+
+check_have_option()
+{
+    local data=$1
+    local have_opt_start=$(echo $data | sed -n "/\[/p")
+    local have_opt_end=$(echo $data | sed -n "/\]/p")
+    if [ "$have_opt_start" = "" ] && [ "$have_opt_end" = "" ]; then
+        return 1 # ada option
+    else 
+        return 0 # ga ada optionnya
+    fi
+}
+
+if [ "$1" = "help" ] || [ "$1" = "-help" ] || [ "$1" = "--help" ] || [ "$1" = "version" ] || [ "$1" = "-version" ] || [ "$1" = "--version" ]; then
+    print_help
+    exit 0
+fi
+
+if [ "$#" -ne "2" ]; then
+    print_help
+    echo "Need 2 parameter to execute!"
+    exit 0
+fi
+
+PARAM1=""
+PARAM2=""
+check_have_https $1
+if [ "$?" -eq "1" ]; then
+    PARAM1=$(remove_https $1)
+else
+    PARAM1=$1
+fi
+
+check_have_https $2
+if [ "$?" -eq "1" ]; then
+    PARAM2=$(remove_https $2)
+else
+    PARAM2=$2
+fi
+
+echo $PARAM1
+echo $PARAM2
+
+# check curl & gpg is exists on system??
+if [ "$(which curl)" = "" ] || [ "$(which gpg)" = "" ]; then
+    echo "Error: curl or gpg not found, try to install it"
+    sudo apt update
+    sudo apt install curl gpg
+fi
+
+GPGFILENAME=$(get_last $1).gpg
+# echo $GPGFILENAME
+
+# download key and converts the PGP file into the correct GPG format, making it ready to be added to the list of sources for apt
+sudo curl -fsSL $1 | sudo gpg --dearmor -o /usr/share/keyrings/$GPGFILENAME
+
+
+SOURCELISTCONTENT=`sudo curl -fsSL $2`
+SOURCELISTFILENAME=$(get_last $2)
+
+check_have_option $SOURCELISTCONTENT
+if [ "$?" -eq "0" ]; then
+    echo $SOURCELISTCONTENT | sudo tee /etc/apt/sources.list.d/$SOURCELISTFILENAME
+    echo "adding custom apt repository is done, you can run 'sudo apt update' now."
+    exit 0
+fi 
+
+# ini ambil yang isi flagnya ajah
+SOURCEOPTION=$(echo $SOURCELISTCONTENT | cut -d "[" -f 2 | cut -d "]" -f 1)
+
+# ini ambil depannya yang ada flagnya dengan di hilangin whitespacenya
+FRONTSOURCE=$(echo $SOURCELISTCONTENT | cut -d "[" -f 1 | awk '{ gsub(/ /,""); print }')
+
+# ini ambil belakangnya sehabis flag dan JANGAN dihilangin whitespacenya
+ENDSOURCE=$(echo $SOURCELISTCONTENT | cut -d "]" -f 2) 
+
+
+SOURCEOPTION="$SOURCEOPTION, signed-by=/usr/share/keyrings/$GPGFILENAME"
+
+echo "$FRONTSOURCE [$SOURCEOPTION] $ENDSOURCE" | sudo tee /etc/apt/sources.list.d/$SOURCELISTFILENAME
+echo "adding custom apt repository is done, you can run 'sudo apt update' now."
+
+exit 0
