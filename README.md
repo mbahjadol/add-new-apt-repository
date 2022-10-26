@@ -10,6 +10,7 @@ This script is to to make it easier to add the ubuntu repository which since the
 All parameter you can add with 'https://' or no
 
 ## Examples:
-./add-new-apt-repository packages.microsoft.com/keys/microsoft.asc packages.microsoft.com/config/ubuntu/20.04/mssql-server-2019.list
-./add-new-apt-repository https://packages.microsoft.com/keys/microsoft.asc https://packages.microsoft.com/config/ubuntu/20.04/mssql-server-2019.list
+- ./add-new-apt-repository packages.microsoft.com/keys/microsoft.asc packages.microsoft.com/config/ubuntu/20.04/mssql-server-2019.list
+
+- ./add-new-apt-repository https://packages.microsoft.com/keys/microsoft.asc https://packages.microsoft.com/config/ubuntu/20.04/mssql-server-2019.list
 
