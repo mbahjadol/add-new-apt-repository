@@ -3,7 +3,7 @@ This script is to to make it easier to add the ubuntu repository which since the
 
 ## Usage:
  download the script add-new-apt-repository and chmod +x to this script then you can run this script.
- warning this script need sudo to run so you will need to entry your password.
+ warning this script need sudo to run so you will need to entry your password if you not root user.
 
 ## Parameter:
 - first parameter is url of file is an armored ASCII file used by Pretty Good Privacy (PGP)
