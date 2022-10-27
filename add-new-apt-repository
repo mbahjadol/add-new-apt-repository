@@ -91,20 +91,17 @@ PARAM1=""
 PARAM2=""
 check_have_https $1
 if [ "$?" -eq "1" ]; then
-    PARAM1=$(remove_https $1)
-else
     PARAM1=$1
+else
+    PARAM1="https://$1"
 fi
 
 check_have_https $2
 if [ "$?" -eq "1" ]; then
-    PARAM2=$(remove_https $2)
-else
     PARAM2=$2
+else
+    PARAM2="https://$2"
 fi
-
-echo $PARAM1
-echo $PARAM2
 
 # check curl & gpg is exists on system??
 if [ "$(which curl)" = "" ] || [ "$(which gpg)" = "" ]; then
@@ -113,15 +110,15 @@ if [ "$(which curl)" = "" ] || [ "$(which gpg)" = "" ]; then
     sudo apt install curl gpg
 fi
 
-GPGFILENAME=$(get_last $1).gpg
+GPGFILENAME=$(get_last $PARAM1).gpg
 # echo $GPGFILENAME
 
 # download key and converts the PGP file into the correct GPG format, making it ready to be added to the list of sources for apt
-sudo curl -fsSL $1 | sudo gpg --dearmor -o /usr/share/keyrings/$GPGFILENAME
+sudo curl -fsSL $PARAM1 | sudo gpg --dearmor -o /usr/share/keyrings/$GPGFILENAME
 
 
-SOURCELISTCONTENT=`sudo curl -fsSL $2`
-SOURCELISTFILENAME=$(get_last $2)
+SOURCELISTCONTENT=`sudo curl -fsSL $PARAM2`
+SOURCELISTFILENAME=$(get_last $PARAM2)
 
 check_have_option $SOURCELISTCONTENT
 if [ "$?" -eq "0" ]; then
